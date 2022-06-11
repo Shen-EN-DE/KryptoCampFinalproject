@@ -96,7 +96,16 @@ contract ShrimpToken is ERC20{
         owners.pop();
 
     }
-
+    
+    function updateowner(uint _txIndex) public view onlyOwner{
+        Transaction storage transaction = transactions[_txIndex];
+            
+        if(transaction.totalToken > 10000000000000000){
+            isowners[transaction.user] == true; 
+        }else{
+            require(false, "not ");
+        }
+    }
 
     function getTransaction(uint _txIndex)
         public
