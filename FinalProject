@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
+
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+import "hardhat/console.sol";
+
+
+
+
+
+contract ShrimpToken is ERC20{
+    
+    
+    struct BuyTokenTime {
+        uint256 amount;
+        uint256 start;
+        uint256 end;
+    }
+
+    mapping(address => BuyTokenTime[]) public buyTokenTimeOf;
+
+
+    struct Transaction {
+        address user;
+        uint value;
+        uint256 totalToken;
+    }
+
+
+    Transaction[] public transactions;
+
+
+    using SafeMath for uint256;
+
+    uint256 public VIPEnd = 31622400 seconds; //Vip結束時間(秒/年)
+
+    uint256 public initialSupply = 1000000000000000000 ; //發放1ETH
+    address[] public owners; 
+    mapping(address => uint256) public ShrimpTotalToken;
+    mapping(address => bool) public isowners;
+    
+
+    modifier onlyOwner() {
+        require(msg.sender == owners[0], "not owner");
+        _;
+    }
+
+
+    constructor() ERC20("Shrimp","SPT"){
+        owners.push(msg.sender); //發行者是擁有者
+        isowners[msg.sender] = true;
+        _mint(msg.sender, initialSupply); //一開始有發行者1ETH
+        ShrimpTotalToken[msg.sender] = initialSupply;
+    }
+
+
+
+    function buyTokens(uint256 amount) public payable {
+        require(msg.value>0, "please input you money"); //購買蝦幣，要輸入值
+        _transfer(owners[0],msg.sender, amount); //由owners發行給人
+        ShrimpTotalToken[msg.sender]= ShrimpTotalToken[msg.sender] + amount;//存使用者買了多少token  //mapping是映射所以要給陣列
+        
+        buyTokenTimeOf[msg.sender].push(
+            BuyTokenTime({
+                amount: amount,
+                start: block.timestamp,
+                end: block.timestamp + VIPEnd
+            })
+        );
+
+        transactions.push(
+            Transaction({
+                user: msg.sender,
+                value: amount,
+                totalToken: ShrimpTotalToken[msg.sender]
+            })
+        );
+
+    }
+
+    function addOwners(address ownerAddr) public onlyOwner{ //只有擁有者可以使用
+        owners.push(ownerAddr);
+        isowners[ownerAddr] = true;
+ 
+    }   
+
+    function subOwners(uint _txIndex) public onlyOwner{ //只有擁有者可以使用，去刪除使用者
+        isowners[owners[_txIndex]] = false;
+        uint lastOne = owners.length - 1;
+        owners[_txIndex] = owners[lastOne];
+        owners.pop();
+
+    }
+
+
+    function getTransaction(uint _txIndex)
+        public
+        view
+        returns (
+            address user,
+            uint value,
+            uint256 totalToken
+        )
+    {
+        Transaction storage transaction = transactions[_txIndex];
+        return (
+            transaction.user,
+            transaction.value,
+            transaction.totalToken
+        );
+    }
+
+
+}
